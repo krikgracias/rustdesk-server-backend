@@ -1,30 +1,23 @@
+# ~/rustdesk-server-backend/Caddyfile
 desk.captainkirk.dev {
-    reverse_proxy localhost:21116
-}
+    # Caddy will automatically get SSL certificates for desk.captainkirk.dev
 
-
-# Add http:// to disable automatic HTTPS
-
-captainkirk.dev {
-    # Keep the main root as /srv if that's where other site content might be
-    # or if it's the base for other services.
-    root * /opt/rustdesk-server/data/srv
-    file_server
-
-    # Add explicit MIME types for Pyodide assets
-    # This is crucial for pyodide.asm.data and other Pyodide files
-  #  mime .wasm application/wasm
- #   mime .data application/octet-stream
-#    mime .zip application/zip
-
-    # --- Start of Quiz-specific configuration ---
-    handle_path /quiz/* {
-        # This root is relative to the *host's* file system that is mounted
-        # into the container's /srv. So, /srv/quiz here means the `quiz` folder
-        # that is located at /opt/rustdesk-server/data/srv/quiz on your host.
-        root * /opt/rustdesk-server/data/srv/quiz 
-        file_server
-        # No need to repeat mime types here if they are already above
+    # Route traffic to HBBS (Signaling Server)
+    # This assumes RustDesk clients can connect to HBBS over this HTTP/S port
+    # and Caddy forwards it. For the custom RustDesk protocol, this is often tricky.
+    reverse_proxy hbbs:21115 {
+        # Optional: Add headers if RustDesk expects them, or if specific client setup.
+        # header_up Host {http.request.host}
+        # header_up X-Forwarded-For {http.request.remote}
     }
-    # --- End of Quiz-specific configuration ---
+
+    # You might need separate blocks or rules for other RustDesk ports (HBBR: 21116, 21117, etc.)
+    # if they need to be routed via this domain.
+    # If clients connect to these directly via Render's IP, then Caddy doesn't need to proxy them.
+
+    # Fallback to general relay if specific paths aren't used or for direct client connections
+    # This would try to send all other traffic to HBBR
+    reverse_proxy / {
+        to hbbr:21116
+    }
 }
