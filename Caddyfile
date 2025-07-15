@@ -1,0 +1,30 @@
+desk.captainkirk.dev {
+    reverse_proxy localhost:21116
+}
+
+
+# Add http:// to disable automatic HTTPS
+
+captainkirk.dev {
+    # Keep the main root as /srv if that's where other site content might be
+    # or if it's the base for other services.
+    root * /opt/rustdesk-server/data/srv
+    file_server
+
+    # Add explicit MIME types for Pyodide assets
+    # This is crucial for pyodide.asm.data and other Pyodide files
+  #  mime .wasm application/wasm
+ #   mime .data application/octet-stream
+#    mime .zip application/zip
+
+    # --- Start of Quiz-specific configuration ---
+    handle_path /quiz/* {
+        # This root is relative to the *host's* file system that is mounted
+        # into the container's /srv. So, /srv/quiz here means the `quiz` folder
+        # that is located at /opt/rustdesk-server/data/srv/quiz on your host.
+        root * /opt/rustdesk-server/data/srv/quiz 
+        file_server
+        # No need to repeat mime types here if they are already above
+    }
+    # --- End of Quiz-specific configuration ---
+}

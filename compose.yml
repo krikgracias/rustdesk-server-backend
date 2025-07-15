@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+    hbbs:
+        container_name: hbbs
+        image: rustdesk/rustdesk-server:latest
+        command: hbbs -r 0.0.0.0:21117
+        volumes:
+            - ./data:/root
+        network_mode: host
+        
+        depends_on:
+            - hbbr
+        restart: always
+        
+    hbbr:
+        container_name: hbbr
+        image: rustdesk/rustdesk-server:latest
+        command: hbbr
+        volumes:
+            - ./data:/root
+        network_mode: host
+        restart: always
+
+    caddy:
+        image: caddy:latest
+        container_name: caddy
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile
+           # - ./data/srv:/srv
+            - /opt/rustdesk-server/data/srv:/srv
+            - caddy_data:/data
+            - caddy_config:/config
+            
+volumes:
+    caddy_data: {}
+    caddy_config: {}       
+        
+    # because using docker host mode
+    # ports
+    # 21114 tcp for web console(pro version only)
+    # 21115 tcp for nat type test
+    # 21116 tcp for hole punching
+    # 21116 udp heartbeat/id server
+    # 21117 tcp relay
+    
+    ## changes 
