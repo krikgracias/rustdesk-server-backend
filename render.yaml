@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: rustdesk-hbbs
+    env: docker
+    plan: starter
+    dockerfilePath: hbbs.Dockerfile
+    autoDeploy: true
+    ports:
+      - port: 21115
+        protocol: TCP
+      - port: 21118
+        protocol: UDP
+
+  - type: web
+    name: rustdesk-hbbr
+    env: docker
+    plan: starter
+    dockerfilePath: hbbr.Dockerfile
+    autoDeploy: true
+    ports:
+      - port: 21116
+        protocol: TCP
+      - port: 21117
+        protocol: TCP
+      - port: 21119
+        protocol: UDP
+
+  - type: web
+    name: rustdesk-caddy
+    env: docker
+    plan: starter
+    dockerfilePath: caddy.Dockerfile
+    autoDeploy: true
+    ports:
+      - port: 80
+        protocol: TCP
+      - port: 443
+        protocol: TCP
