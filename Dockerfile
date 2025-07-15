@@ -7,7 +7,7 @@ FROM docker/compose:latest
 WORKDIR /app
 
 # Copy your compose.yml file into the container's working directory
-COPY compose.yml .
+COPY docker-compose.yml .
 
 # This is the command that will be executed when the container starts
 # It will bring up all the services defined in your compose.yml
