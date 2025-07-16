@@ -1,23 +1,60 @@
 # ~/rustdesk-server-backend/Caddyfile
-desk.captainkirk.dev {
-    # Caddy will automatically get SSL certificates for desk.captainkirk.dev
+{
+  # Global options for Caddy
+  # This block loads the layer4 app, required for TCP/UDP proxying.
+  # This must be present.
+  servers {
+    protocol tcp
+    # Define a server that listens on standard HTTPS port (443)
+    # It's a TCP server, not an HTTP server.
+    https 443 {
+      listen 443 {
+        protocol tcp # Listen for raw TCP connections on 443
+        tls {
+          # Caddy will automatically get SSL certs for desk.captainkirk.dev
+          # This requires desk.captainkirk.dev to be added as a custom domain
+          # to your 'rustdesk-caddy' Render Web Service.
+          domains desk.captainkirk.dev
+        }
+      }
 
-    # Route traffic to HBBS (Signaling Server)
-    # This assumes RustDesk clients can connect to HBBS over this HTTP/S port
-    # and Caddy forwards it. For the custom RustDesk protocol, this is often tricky.
-    reverse_proxy hbbs:21115 {
-        # Optional: Add headers if RustDesk expects them, or if specific client setup.
-        # header_up Host {http.request.host}
-        # header_up X-Forwarded-For {http.request.remote}
+      # Route based on SNI (Server Name Indication) for TLS traffic.
+      # This tells Caddy to apply these rules if the incoming TLS connection is for desk.captainkirk.dev.
+      route {
+        tls {
+            sni desk.captainkirk.dev
+        }
+
+        # Proxy HBBS (Signaling Server) traffic on port 443
+        # Render's internal service name for hbbs is 'rustdesk-hbbs' (from render.yaml)
+        # Its internal port is 21115 (from hbbs.Dockerfile / your render.yaml)
+        @to_hbbs {
+            # This matches if the traffic needs to go to hbbs (e.g., if it's the signaling port)
+            # You might need specific matchers if different client behaviors
+        }
+        handle @to_hbbs {
+            reverse_proxy rustdesk-hbbs:21115
+        }
+
+        # Proxy HBBR (Relay Server) traffic on port 443 (as a fallback or for specific clients)
+        # Render's internal service name for hbbr is 'rustdesk-hbbr' (from render.yaml)
+        # Its internal port is 21116 (from hbbr.Dockerfile / your render.yaml)
+        @to_hbbr {
+            # This is a general fallback, or could be based on specific SNI (e.g. relay.desk.captainkirk.dev)
+            # If all traffic goes to 443, you might need more advanced rules or client config.
+        }
+        handle @to_hbbr {
+            reverse_proxy rustdesk-hbbr:21116
+        }
+
+        # Catch-all for any other traffic on this domain/port
+        # You might decide to drop it, or send it somewhere specific.
+        # This is optional but can prevent unexpected routing.
+        # handle {
+        #   respond "Not found" 404
+        # }
+
+      }
     }
-
-    # You might need separate blocks or rules for other RustDesk ports (HBBR: 21116, 21117, etc.)
-    # if they need to be routed via this domain.
-    # If clients connect to these directly via Render's IP, then Caddy doesn't need to proxy them.
-
-    # Fallback to general relay if specific paths aren't used or for direct client connections
-    # This would try to send all other traffic to HBBR
-    reverse_proxy / {
-        to hbbr:21116
-    }
+  }
 }
